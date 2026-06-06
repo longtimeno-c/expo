@@ -6,6 +6,7 @@
 
 ### 🎉 New features
 
+- Add `expo run:macos` and `expo prebuild --platform macos` to build and generate macOS projects without a manual eject. ([#0](https://github.com/expo/expo/pull/0) by [@tphwoodlands](https://github.com/tphwoodlands))
 - Support Bundler-managed CocoaPods installations ([#43605](https://github.com/expo/expo/pull/43605) by [@tiwari91](https://github.com/tiwari91), [@kitten](https://github.com/kitten))
 
 ### 🐛 Bug fixes

@@ -39,7 +39,7 @@ export const expoPrebuild: Command = async (argv) => {
         chalk`--bun                                    Use bun to install dependencies. {dim Default when bun.lock or bun.lockb exists}`,
         chalk`--pnpm                                   Use pnpm to install dependencies. {dim Default when pnpm-lock.yaml exists}`,
         `--template <template>                    Project template to clone from. File path pointing to a local tar file, npm package or a github repo`,
-        chalk`-p, --platform <all|android|ios>         Platforms to sync: ios, android, all. {dim Default: all}`,
+        chalk`-p, --platform <all|android|ios|macos>   Platforms to sync: ios, android, macos, all. {dim Default: all (android, ios)}`,
         `--skip-dependency-update <dependencies>  Preserves versions of listed packages in package.json (comma separated list)`,
         `-h, --help                               Usage info`,
       ].join('\n')
