@@ -8,7 +8,7 @@ exports.getLegacyExpoPlugins = getLegacyExpoPlugins;
 exports.isTVEnabled = isTVEnabled;
 exports.withIosExpoPlugins = exports.withAndroidExpoPlugins = void 0;
 exports.withLegacyExpoPlugins = withLegacyExpoPlugins;
-exports.withVersionedExpoSDKPlugins = void 0;
+exports.withVersionedExpoSDKPlugins = exports.withMacosExpoPlugins = void 0;
 function _configPlugins() {
   const data = require("@expo/config-plugins");
   _configPlugins = function () {
@@ -152,10 +152,54 @@ const withIosExpoPlugins = (config, {
 };
 
 /**
+ * Config plugin to apply the Expo macOS config plugins during prebuild.
+ *
+ * macOS reuses the iOS app config keys (`ios.*`) and the same Apple project formats, so this applies
+ * the platform-safe subset of the iOS plugins to the `macos/` project: app name, version, build
+ * number, and bundle identifier. iPhone/iPad-only concerns (orientation, device family, icon sizing)
+ * are intentionally omitted — macOS doesn't use them.
+ */
+exports.withIosExpoPlugins = withIosExpoPlugins;
+const withMacosExpoPlugins = (config, {
+  bundleIdentifier
+}) => {
+  if (!config.ios) config.ios = {};
+  config.ios.bundleIdentifier = bundleIdentifier;
+
+  // Apply Info.plist values (name, version, bundle identifier) to the macOS Info.plist.
+  config = (0, _configPlugins().withMod)(config, {
+    platform: 'macos',
+    mod: 'infoPlist',
+    action(config) {
+      let infoPlist = config.modResults;
+      infoPlist = _configPlugins().IOSConfig.Name.setDisplayName(config, infoPlist);
+      infoPlist = _configPlugins().IOSConfig.Version.setVersion(config, infoPlist);
+      infoPlist = _configPlugins().IOSConfig.Version.setBuildNumber(config, infoPlist);
+      infoPlist.CFBundleIdentifier = bundleIdentifier;
+      config.modResults = infoPlist;
+      if (!config.ios) config.ios = {};
+      config.ios.infoPlist = infoPlist;
+      return config;
+    }
+  });
+
+  // Apply the bundle identifier to the macOS Xcode project.
+  config = (0, _configPlugins().withMod)(config, {
+    platform: 'macos',
+    mod: 'xcodeproj',
+    action(config) {
+      _configPlugins().IOSConfig.BundleIdentifier.updateBundleIdentifierForPbxprojObject(config.modResults, bundleIdentifier, false);
+      return config;
+    }
+  });
+  return config;
+};
+
+/**
  * Config plugin to apply all of the custom Expo Android config plugins we support by default.
  * TODO: In the future most of this should go into versioned packages like expo-updates, etc...
  */
-exports.withIosExpoPlugins = withIosExpoPlugins;
+exports.withMacosExpoPlugins = withMacosExpoPlugins;
 const withAndroidExpoPlugins = (config, props) => {
   // Set the package name ahead of time.
   if (!config.android) config.android = {};

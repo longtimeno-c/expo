@@ -17,6 +17,17 @@ export declare const withIosExpoPlugins: ConfigPlugin<{
     bundleIdentifier: string;
 }>;
 /**
+ * Config plugin to apply the Expo macOS config plugins during prebuild.
+ *
+ * macOS reuses the iOS app config keys (`ios.*`) and the same Apple project formats, so this applies
+ * the platform-safe subset of the iOS plugins to the `macos/` project: app name, version, build
+ * number, and bundle identifier. iPhone/iPad-only concerns (orientation, device family, icon sizing)
+ * are intentionally omitted — macOS doesn't use them.
+ */
+export declare const withMacosExpoPlugins: ConfigPlugin<{
+    bundleIdentifier: string;
+}>;
+/**
  * Config plugin to apply all of the custom Expo Android config plugins we support by default.
  * TODO: In the future most of this should go into versioned packages like expo-updates, etc...
  */

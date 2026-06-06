@@ -2,7 +2,7 @@
  * These are the versioned first-party plugins with some of the future third-party plugins mixed in for legacy support.
  */
 import type { ConfigPlugin, StaticPlugin } from '@expo/config-plugins';
-import { AndroidConfig, IOSConfig, withPlugins, withStaticPlugin } from '@expo/config-plugins';
+import { AndroidConfig, IOSConfig, withMod, withPlugins, withStaticPlugin } from '@expo/config-plugins';
 import type { ExpoConfig } from '@expo/config-types';
 import Debug from 'debug';
 
@@ -73,6 +73,54 @@ export const withIosExpoPlugins: ConfigPlugin<{
     ...(isTV ? [] : [withIosIcons]),
     IOSConfig.PrivacyInfo.withPrivacyInfo,
   ]);
+};
+
+/**
+ * Config plugin to apply the Expo macOS config plugins during prebuild.
+ *
+ * macOS reuses the iOS app config keys (`ios.*`) and the same Apple project formats, so this applies
+ * the platform-safe subset of the iOS plugins to the `macos/` project: app name, version, build
+ * number, and bundle identifier. iPhone/iPad-only concerns (orientation, device family, icon sizing)
+ * are intentionally omitted — macOS doesn't use them.
+ */
+export const withMacosExpoPlugins: ConfigPlugin<{
+  bundleIdentifier: string;
+}> = (config, { bundleIdentifier }) => {
+  if (!config.ios) config.ios = {};
+  config.ios.bundleIdentifier = bundleIdentifier;
+
+  // Apply Info.plist values (name, version, bundle identifier) to the macOS Info.plist.
+  config = withMod(config, {
+    platform: 'macos',
+    mod: 'infoPlist',
+    action(config) {
+      let infoPlist = config.modResults as any;
+      infoPlist = IOSConfig.Name.setDisplayName(config, infoPlist);
+      infoPlist = IOSConfig.Version.setVersion(config, infoPlist);
+      infoPlist = IOSConfig.Version.setBuildNumber(config, infoPlist);
+      infoPlist.CFBundleIdentifier = bundleIdentifier;
+      config.modResults = infoPlist;
+      if (!config.ios) config.ios = {};
+      config.ios.infoPlist = infoPlist;
+      return config;
+    },
+  });
+
+  // Apply the bundle identifier to the macOS Xcode project.
+  config = withMod(config, {
+    platform: 'macos',
+    mod: 'xcodeproj',
+    action(config) {
+      IOSConfig.BundleIdentifier.updateBundleIdentifierForPbxprojObject(
+        config.modResults as any,
+        bundleIdentifier,
+        false
+      );
+      return config;
+    },
+  });
+
+  return config;
 };
 
 /**

@@ -6,6 +6,7 @@ import {
   withAndroidExpoPlugins,
   withIosExpoPlugins,
   withLegacyExpoPlugins,
+  withMacosExpoPlugins,
   withVersionedExpoSDKPlugins,
 } from './plugins/withDefaultPlugins';
 
@@ -64,6 +65,17 @@ function getPrebuildConfig(
 
     // Add all built-in plugins
     config = withIosExpoPlugins(config, {
+      bundleIdentifier: config.ios.bundleIdentifier,
+    });
+  }
+
+  if (platforms.includes('macos')) {
+    if (!config.ios) config.ios = {};
+    // macOS reuses the iOS bundle identifier config key.
+    config.ios.bundleIdentifier =
+      bundleIdentifier ?? config.ios.bundleIdentifier ?? `com.placeholder.appid`;
+
+    config = withMacosExpoPlugins(config, {
       bundleIdentifier: config.ios.bundleIdentifier,
     });
   }
