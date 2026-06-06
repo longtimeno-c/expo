@@ -50,6 +50,20 @@ describe('DeploymentTarget module', () => {
       setDeploymentTargetForBuildConfiguration(buildConfig, undefined);
       expect(buildConfig.buildSettings.IPHONEOS_DEPLOYMENT_TARGET).toBeUndefined();
     });
+
+    it('sets TVOS_DEPLOYMENT_TARGET for a tvOS target detected via an existing TVOS_DEPLOYMENT_TARGET', () => {
+      const buildConfig = { buildSettings: { TVOS_DEPLOYMENT_TARGET: '15.0' } } as any;
+      setDeploymentTargetForBuildConfiguration(buildConfig, '16.0');
+      expect(buildConfig.buildSettings.TVOS_DEPLOYMENT_TARGET).toBe('16.0');
+      expect(buildConfig.buildSettings.IPHONEOS_DEPLOYMENT_TARGET).toBeUndefined();
+    });
+
+    it('sets TVOS_DEPLOYMENT_TARGET for a tvOS target detected via SDKROOT=appletvos', () => {
+      const buildConfig = { buildSettings: { SDKROOT: 'appletvos' } } as any;
+      setDeploymentTargetForBuildConfiguration(buildConfig, '16.0');
+      expect(buildConfig.buildSettings.TVOS_DEPLOYMENT_TARGET).toBe('16.0');
+      expect(buildConfig.buildSettings.IPHONEOS_DEPLOYMENT_TARGET).toBeUndefined();
+    });
   });
 
   describe(updateDeploymentTargetForPbxproj, () => {

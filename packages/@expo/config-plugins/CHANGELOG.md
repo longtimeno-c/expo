@@ -8,6 +8,8 @@
 
 ### 🐛 Bug fixes
 
+- Set `TVOS_DEPLOYMENT_TARGET` instead of `IPHONEOS_DEPLOYMENT_TARGET` for Apple TV build configurations so `ios.deploymentTarget` works for tvOS targets. ([#0](https://github.com/expo/expo/pull/0) by [@tphwoodlands](https://github.com/tphwoodlands))
+
 ### 💡 Others
 
 ## 56.0.8 — 2026-05-23
