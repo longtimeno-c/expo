@@ -56,7 +56,8 @@ function getInfoPlistTemplate() {
   };
 }
 
-const defaultProviders = {
+function getAppleModFileProviders(nativeDir: Paths.AppleNativeDir = 'ios') {
+  return {
   dangerous: provider<unknown>({
     getFilePath() {
       return '';
@@ -79,7 +80,7 @@ const defaultProviders = {
   appDelegate: provider<Paths.AppDelegateProjectFile>({
     getFilePath({ modRequest: { projectRoot } }) {
       // TODO: Get application AppDelegate file from pbxproj.
-      return Paths.getAppDelegateFilePath(projectRoot);
+      return Paths.getAppDelegateFilePath(projectRoot, nativeDir);
     },
     async read(filePath) {
       return Paths.getFileInfo(filePath);
@@ -115,7 +116,7 @@ const defaultProviders = {
   // Append a rule to supply .xcodeproj data to mods on `mods.ios.xcodeproj`
   xcodeproj: provider<XcodeProject>({
     getFilePath({ modRequest: { projectRoot } }) {
-      return Paths.getPBXProjectPath(projectRoot);
+      return Paths.getPBXProjectPath(projectRoot, nativeDir);
     },
     async read(filePath) {
       const project = xcode.project(filePath);
@@ -132,7 +133,7 @@ const defaultProviders = {
     async getFilePath(config) {
       let project: xcode.XcodeProject | null = null;
       try {
-        project = getPbxproj(config.modRequest.projectRoot);
+        project = getPbxproj(config.modRequest.projectRoot, nativeDir);
       } catch {
         // noop
       }
@@ -163,7 +164,7 @@ const defaultProviders = {
       }
       try {
         // Fallback on glob...
-        return await Paths.getInfoPlistPath(config.modRequest.projectRoot);
+        return await Paths.getInfoPlistPath(config.modRequest.projectRoot, nativeDir);
       } catch (error: any) {
         if (config.modRequest.introspect) {
           // fallback to an empty string in introspection mode.
@@ -220,8 +221,8 @@ const defaultProviders = {
 
     async getFilePath(config) {
       try {
-        ensureApplicationTargetEntitlementsFileConfigured(config.modRequest.projectRoot);
-        return Entitlements.getEntitlementsPath(config.modRequest.projectRoot) ?? '';
+        ensureApplicationTargetEntitlementsFileConfigured(config.modRequest.projectRoot, nativeDir);
+        return Entitlements.getEntitlementsPath(config.modRequest.projectRoot, { nativeDir }) ?? '';
       } catch (error: any) {
         if (config.modRequest.introspect) {
           // fallback to an empty string in introspection mode.
@@ -281,7 +282,7 @@ const defaultProviders = {
 
   podfile: provider<Paths.PodfileProjectFile>({
     getFilePath({ modRequest: { projectRoot } }) {
-      return Paths.getPodfilePath(projectRoot);
+      return Paths.getPodfilePath(projectRoot, nativeDir);
     },
     // @ts-expect-error
     async read(filePath) {
@@ -314,16 +315,17 @@ const defaultProviders = {
       await JsonFile.writeAsync(filePath, modResults);
     },
   }),
-};
+  };
+}
 
-type IosDefaultProviders = typeof defaultProviders;
+type AppleDefaultProviders = ReturnType<typeof getAppleModFileProviders>;
 
 export function withIosBaseMods(
   config: ExportedConfig,
   {
     providers,
     ...props
-  }: ForwardedBaseModOptions & { providers?: Partial<IosDefaultProviders> } = {}
+  }: ForwardedBaseModOptions & { providers?: Partial<AppleDefaultProviders> } = {}
 ): ExportedConfig {
   return withGeneratedBaseMods<IosModName>(config, {
     ...props,
@@ -333,5 +335,27 @@ export function withIosBaseMods(
 }
 
 export function getIosModFileProviders() {
-  return defaultProviders;
+  return getAppleModFileProviders('ios');
+}
+
+/**
+ * macOS reuses the iOS Apple mod providers, but resolves files from the `macos/` directory instead
+ * of `ios/`. This lets the existing iOS config plugins apply to a macOS prebuild unchanged.
+ */
+export function withMacosBaseMods(
+  config: ExportedConfig,
+  {
+    providers,
+    ...props
+  }: ForwardedBaseModOptions & { providers?: Partial<AppleDefaultProviders> } = {}
+): ExportedConfig {
+  return withGeneratedBaseMods<IosModName>(config, {
+    ...props,
+    platform: 'macos',
+    providers: providers ?? getMacosModFileProviders(),
+  });
+}
+
+export function getMacosModFileProviders() {
+  return getAppleModFileProviders('macos');
 }

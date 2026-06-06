@@ -9,6 +9,13 @@ import { addWarningIOS } from '../utils/warnings';
 
 const ignoredPaths = ['**/@(Carthage|Pods|vendor|node_modules)/**'];
 
+/**
+ * The native project directory for an Apple platform, relative to the project root. Defaults to
+ * `ios`. macOS prebuilds live in a sibling `macos` directory, so the path helpers accept this so the
+ * same Apple tooling can resolve files for either platform.
+ */
+export type AppleNativeDir = 'ios' | 'macos' | (string & {});
+
 interface ProjectFile<L extends string = string> {
   path: string;
   language: L;
@@ -48,9 +55,12 @@ export function getAppDelegateHeaderFilePath(projectRoot: string): string {
   return using;
 }
 
-export function getAppDelegateFilePath(projectRoot: string): string {
+export function getAppDelegateFilePath(
+  projectRoot: string,
+  nativeDir: AppleNativeDir = 'ios'
+): string {
   const [using, ...extra] = withSortedGlobResult(
-    globSync('ios/*/AppDelegate.@(m|mm|swift)', {
+    globSync(`${nativeDir}/*/AppDelegate.@(m|mm|swift)`, {
       absolute: true,
       cwd: projectRoot,
       ignore: ignoredPaths,
@@ -100,9 +110,9 @@ export function getAppDelegateObjcHeaderFilePath(projectRoot: string): string {
   return using;
 }
 
-export function getPodfilePath(projectRoot: string): string {
+export function getPodfilePath(projectRoot: string, nativeDir: AppleNativeDir = 'ios'): string {
   const [using, ...extra] = withSortedGlobResult(
-    globSync('ios/Podfile', {
+    globSync(`${nativeDir}/Podfile`, {
       absolute: true,
       cwd: projectRoot,
       ignore: ignoredPaths,
@@ -152,19 +162,22 @@ export function getFileInfo(filePath: string) {
   };
 }
 
-export function getAppDelegate(projectRoot: string): AppDelegateProjectFile {
-  const filePath = getAppDelegateFilePath(projectRoot);
+export function getAppDelegate(
+  projectRoot: string,
+  nativeDir: AppleNativeDir = 'ios'
+): AppDelegateProjectFile {
+  const filePath = getAppDelegateFilePath(projectRoot, nativeDir);
   return getFileInfo(filePath);
 }
 
-export function getSourceRoot(projectRoot: string): string {
-  const appDelegate = getAppDelegate(projectRoot);
+export function getSourceRoot(projectRoot: string, nativeDir: AppleNativeDir = 'ios'): string {
+  const appDelegate = getAppDelegate(projectRoot, nativeDir);
   return path.dirname(appDelegate.path);
 }
 
-export function findSchemePaths(projectRoot: string): string[] {
+export function findSchemePaths(projectRoot: string, nativeDir: AppleNativeDir = 'ios'): string[] {
   return withSortedGlobResult(
-    globSync('ios/*.xcodeproj/xcshareddata/xcschemes/*.xcscheme', {
+    globSync(`${nativeDir}/*.xcodeproj/xcshareddata/xcschemes/*.xcscheme`, {
       absolute: true,
       cwd: projectRoot,
       ignore: ignoredPaths,
@@ -172,33 +185,35 @@ export function findSchemePaths(projectRoot: string): string[] {
   );
 }
 
-export function findSchemeNames(projectRoot: string): string[] {
-  const schemePaths = findSchemePaths(projectRoot);
+export function findSchemeNames(projectRoot: string, nativeDir: AppleNativeDir = 'ios'): string[] {
+  const schemePaths = findSchemePaths(projectRoot, nativeDir);
   return schemePaths.map((schemePath) => path.parse(schemePath).name);
 }
 
-export function getAllXcodeProjectPaths(projectRoot: string): string[] {
-  const iosFolder = 'ios';
+export function getAllXcodeProjectPaths(
+  projectRoot: string,
+  nativeDir: AppleNativeDir = 'ios'
+): string[] {
   const pbxprojPaths = withSortedGlobResult(
-    globSync('ios/**/*.xcodeproj', { cwd: projectRoot, ignore: ignoredPaths })
+    globSync(`${nativeDir}/**/*.xcodeproj`, { cwd: projectRoot, ignore: ignoredPaths })
       // Drop leading `/` from glob results to mimick glob@<9 behavior
       .map((filePath) => filePath.replace(/^\//, ''))
       .filter(
-        (project) => !/test|example|sample/i.test(project) || path.dirname(project) === iosFolder
+        (project) => !/test|example|sample/i.test(project) || path.dirname(project) === nativeDir
       )
   ).sort((a, b) => {
-    const isAInIos = path.dirname(a) === iosFolder;
-    const isBInIos = path.dirname(b) === iosFolder;
+    const isAInNativeDir = path.dirname(a) === nativeDir;
+    const isBInNativeDir = path.dirname(b) === nativeDir;
     // preserve previous sort order
-    if ((isAInIos && isBInIos) || (!isAInIos && !isBInIos)) {
+    if ((isAInNativeDir && isBInNativeDir) || (!isAInNativeDir && !isBInNativeDir)) {
       return 0;
     }
-    return isAInIos ? -1 : 1;
+    return isAInNativeDir ? -1 : 1;
   });
 
   if (!pbxprojPaths.length) {
     throw new UnexpectedError(
-      `Failed to locate the ios/*.xcodeproj files relative to path "${projectRoot}".`
+      `Failed to locate the ${nativeDir}/*.xcodeproj files relative to path "${projectRoot}".`
     );
   }
   return pbxprojPaths.map((value) => path.join(projectRoot, value));
@@ -207,8 +222,8 @@ export function getAllXcodeProjectPaths(projectRoot: string): string[] {
 /**
  * Get the pbxproj for the given path
  */
-export function getXcodeProjectPath(projectRoot: string): string {
-  const [using = '', ...extra] = getAllXcodeProjectPaths(projectRoot);
+export function getXcodeProjectPath(projectRoot: string, nativeDir: AppleNativeDir = 'ios'): string {
+  const [using = '', ...extra] = getAllXcodeProjectPaths(projectRoot, nativeDir);
 
   if (extra.length) {
     warnMultipleFiles({
@@ -223,22 +238,25 @@ export function getXcodeProjectPath(projectRoot: string): string {
   return using;
 }
 
-export function getAllPBXProjectPaths(projectRoot: string): string[] {
-  const projectPaths = getAllXcodeProjectPaths(projectRoot);
+export function getAllPBXProjectPaths(
+  projectRoot: string,
+  nativeDir: AppleNativeDir = 'ios'
+): string[] {
+  const projectPaths = getAllXcodeProjectPaths(projectRoot, nativeDir);
   const paths = projectPaths
     .map((value) => path.join(value, 'project.pbxproj'))
     .filter((value) => existsSync(value));
 
   if (!paths.length) {
     throw new UnexpectedError(
-      `Failed to locate the ios/*.xcodeproj/project.pbxproj files relative to path "${projectRoot}".`
+      `Failed to locate the ${nativeDir}/*.xcodeproj/project.pbxproj files relative to path "${projectRoot}".`
     );
   }
   return paths;
 }
 
-export function getPBXProjectPath(projectRoot: string): string {
-  const [using = '', ...extra] = getAllPBXProjectPaths(projectRoot);
+export function getPBXProjectPath(projectRoot: string, nativeDir: AppleNativeDir = 'ios'): string {
+  const [using = '', ...extra] = getAllPBXProjectPaths(projectRoot, nativeDir);
 
   if (extra.length) {
     warnMultipleFiles({
@@ -253,9 +271,12 @@ export function getPBXProjectPath(projectRoot: string): string {
   return using;
 }
 
-export function getAllInfoPlistPaths(projectRoot: string): string[] {
+export function getAllInfoPlistPaths(
+  projectRoot: string,
+  nativeDir: AppleNativeDir = 'ios'
+): string[] {
   const paths = withSortedGlobResult(
-    globSync('ios/*/Info.plist', {
+    globSync(`${nativeDir}/*/Info.plist`, {
       absolute: true,
       cwd: projectRoot,
       ignore: ignoredPaths,
@@ -273,8 +294,8 @@ export function getAllInfoPlistPaths(projectRoot: string): string[] {
   return paths;
 }
 
-export function getInfoPlistPath(projectRoot: string): string {
-  const [using = '', ...extra] = getAllInfoPlistPaths(projectRoot);
+export function getInfoPlistPath(projectRoot: string, nativeDir: AppleNativeDir = 'ios'): string {
+  const [using = '', ...extra] = getAllInfoPlistPaths(projectRoot, nativeDir);
 
   if (extra.length) {
     warnMultipleFiles({
@@ -289,8 +310,11 @@ export function getInfoPlistPath(projectRoot: string): string {
   return using;
 }
 
-export function getAllEntitlementsPaths(projectRoot: string): string[] {
-  const paths = globSync('ios/*/*.entitlements', {
+export function getAllEntitlementsPaths(
+  projectRoot: string,
+  nativeDir: AppleNativeDir = 'ios'
+): string[] {
+  const paths = globSync(`${nativeDir}/*/*.entitlements`, {
     absolute: true,
     cwd: projectRoot,
     ignore: ignoredPaths,
@@ -305,12 +329,17 @@ export function getEntitlementsPath(projectRoot: string): string | null {
   return Entitlements.getEntitlementsPath(projectRoot);
 }
 
-export function getSupportingPath(projectRoot: string): string {
-  return path.resolve(projectRoot, 'ios', path.basename(getSourceRoot(projectRoot)), 'Supporting');
+export function getSupportingPath(projectRoot: string, nativeDir: AppleNativeDir = 'ios'): string {
+  return path.resolve(
+    projectRoot,
+    nativeDir,
+    path.basename(getSourceRoot(projectRoot, nativeDir)),
+    'Supporting'
+  );
 }
 
-export function getExpoPlistPath(projectRoot: string): string {
-  const supportingPath = getSupportingPath(projectRoot);
+export function getExpoPlistPath(projectRoot: string, nativeDir: AppleNativeDir = 'ios'): string {
+  const supportingPath = getSupportingPath(projectRoot, nativeDir);
   return path.join(supportingPath, 'Expo.plist');
 }
 

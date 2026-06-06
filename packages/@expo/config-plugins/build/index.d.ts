@@ -5,7 +5,7 @@ import * as AndroidConfig from './android';
 import * as IOSConfig from './ios';
 import { provider, withGeneratedBaseMods } from './plugins/createBaseMod';
 import { getAndroidModFileProviders, withAndroidBaseMods } from './plugins/withAndroidBaseMods';
-import { getIosModFileProviders, withIosBaseMods } from './plugins/withIosBaseMods';
+import { getIosModFileProviders, getMacosModFileProviders, withIosBaseMods, withMacosBaseMods } from './plugins/withIosBaseMods';
 import * as XML from './utils/XML';
 import * as CodeGenerator from './utils/generateCode';
 import * as History from './utils/history';
@@ -35,4 +35,6 @@ export declare const BaseMods: {
     getAndroidModFileProviders: typeof getAndroidModFileProviders;
     withIosBaseMods: typeof withIosBaseMods;
     getIosModFileProviders: typeof getIosModFileProviders;
+    withMacosBaseMods: typeof withMacosBaseMods;
+    getMacosModFileProviders: typeof getMacosModFileProviders;
 };

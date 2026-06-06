@@ -69,6 +69,7 @@ function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e
 const debug = (0, _debug().default)('expo:config-plugins:mod-compiler');
 function withDefaultBaseMods(config, props = {}) {
   config = (0, _withIosBaseMods().withIosBaseMods)(config, props);
+  config = (0, _withIosBaseMods().withMacosBaseMods)(config, props);
   config = (0, _withAndroidBaseMods().withAndroidBaseMods)(config, props);
   return config;
 }
@@ -83,6 +84,11 @@ function withIntrospectionBaseMods(config, props = {}) {
     saveToInternal: true,
     // This writing optimization can be skipped since we never write in introspection mode.
     // Including empty mods will ensure that all mods get introspected.
+    skipEmptyMod: false,
+    ...props
+  });
+  config = (0, _withIosBaseMods().withMacosBaseMods)(config, {
+    saveToInternal: true,
     skipEmptyMod: false,
     ...props
   });
@@ -142,15 +148,18 @@ function getRawClone({
   // the mods.
   return Object.freeze(JSON.parse(JSON.stringify(config)));
 }
+const applePrecedence = {
+  // dangerous runs first
+  dangerous: -2,
+  // run the XcodeProject mod second because many plugins attempt to read from it.
+  xcodeproj: -1,
+  // put the finalized mod at the last
+  finalized: 1
+};
 const precedences = {
-  ios: {
-    // dangerous runs first
-    dangerous: -2,
-    // run the XcodeProject mod second because many plugins attempt to read from it.
-    xcodeproj: -1,
-    // put the finalized mod at the last
-    finalized: 1
-  }
+  ios: applePrecedence,
+  // macOS uses the same Apple project ordering as iOS.
+  macos: applePrecedence
 };
 /**
  * A generic plugin compiler.
@@ -180,7 +189,7 @@ async function evalModsAsync(config, {
       });
       debug(`run in order: ${entries.map(([name]) => name).join(', ')}`);
       const platformProjectRoot = _path().default.join(projectRoot, platformName);
-      const projectName = platformName === 'ios' ? (0, _Xcodeproj().getHackyProjectName)(projectRoot, config) : undefined;
+      const projectName = platformName === 'ios' || platformName === 'macos' ? (0, _Xcodeproj().getHackyProjectName)(projectRoot, config, platformName) : undefined;
       for (const [modName, mod] of entries) {
         const modRequest = {
           projectRoot,

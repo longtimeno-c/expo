@@ -141,39 +141,50 @@ export interface ModConfig {
          */
         gradleProperties?: Mod<Properties.PropertiesItem[]>;
     };
-    ios?: {
-        /**
-         * Dangerously make a modification before any other platform mods have been run.
-         */
-        dangerous?: Mod<unknown>;
-        /**
-         * Dangerously make a modification after all the other platform mods have been run.
-         */
-        finalized?: Mod<unknown>;
-        /**
-         * Modify the `ios/<name>/Info.plist` as JSON (parsed with [`@expo/plist`](https://www.npmjs.com/package/@expo/plist)).
-         */
-        infoPlist?: Mod<InfoPlist>;
-        /**
-         * Modify the `ios/<name>/<product-name>.entitlements` as JSON (parsed with [`@expo/plist`](https://www.npmjs.com/package/@expo/plist)).
-         */
-        entitlements?: Mod<Plist>;
-        /**
-         * Modify the `ios/<name>/Expo.plist` as JSON (Expo updates config for iOS) (parsed with [`@expo/plist`](https://www.npmjs.com/package/@expo/plist)).
-         */
-        expoPlist?: Mod<Plist>;
-        /**
-         * Modify the `ios/<name>.xcodeproj` as an `XcodeProject` (parsed with [`xcode`](https://www.npmjs.com/package/xcode))
-         */
-        xcodeproj?: Mod<XcodeProject>;
-        /**
-         * Modify the `ios/<name>/AppDelegate.m` as a string (dangerous)
-         */
-        appDelegate?: Mod<AppDelegateProjectFile>;
-        /**
-         * Modify the `ios/Podfile.properties.json` as key-value pairs
-         */
-        podfileProperties?: Mod<Record<string, string>>;
-    };
+    ios?: AppleModConfig;
+    /**
+     * macOS mods. macOS reuses the same Apple project formats as iOS (Xcode project, Info.plist,
+     * entitlements), so it shares the same mod shape — the files just live in the `macos/` directory.
+     */
+    macos?: AppleModConfig;
+}
+/**
+ * Mods for an Apple platform (iOS or macOS). Both platforms use the same Xcode project, Info.plist,
+ * and entitlements formats, so they share this shape; only the native directory differs
+ * (`ios/` vs `macos/`).
+ */
+export interface AppleModConfig {
+    /**
+     * Dangerously make a modification before any other platform mods have been run.
+     */
+    dangerous?: Mod<unknown>;
+    /**
+     * Dangerously make a modification after all the other platform mods have been run.
+     */
+    finalized?: Mod<unknown>;
+    /**
+     * Modify the `<platform>/<name>/Info.plist` as JSON (parsed with [`@expo/plist`](https://www.npmjs.com/package/@expo/plist)).
+     */
+    infoPlist?: Mod<InfoPlist>;
+    /**
+     * Modify the `<platform>/<name>/<product-name>.entitlements` as JSON (parsed with [`@expo/plist`](https://www.npmjs.com/package/@expo/plist)).
+     */
+    entitlements?: Mod<Plist>;
+    /**
+     * Modify the `<platform>/<name>/Expo.plist` as JSON (Expo updates config) (parsed with [`@expo/plist`](https://www.npmjs.com/package/@expo/plist)).
+     */
+    expoPlist?: Mod<Plist>;
+    /**
+     * Modify the `<platform>/<name>.xcodeproj` as an `XcodeProject` (parsed with [`xcode`](https://www.npmjs.com/package/xcode))
+     */
+    xcodeproj?: Mod<XcodeProject>;
+    /**
+     * Modify the `<platform>/<name>/AppDelegate.m` as a string (dangerous)
+     */
+    appDelegate?: Mod<AppDelegateProjectFile>;
+    /**
+     * Modify the `<platform>/Podfile.properties.json` as key-value pairs
+     */
+    podfileProperties?: Mod<Record<string, string>>;
 }
 export type ModPlatform = keyof ModConfig;

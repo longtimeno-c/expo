@@ -457,6 +457,8 @@ const BaseMods = exports.BaseMods = {
   withAndroidBaseMods: _withAndroidBaseMods().withAndroidBaseMods,
   getAndroidModFileProviders: _withAndroidBaseMods().getAndroidModFileProviders,
   withIosBaseMods: _withIosBaseMods().withIosBaseMods,
-  getIosModFileProviders: _withIosBaseMods().getIosModFileProviders
+  getIosModFileProviders: _withIosBaseMods().getIosModFileProviders,
+  withMacosBaseMods: _withIosBaseMods().withMacosBaseMods,
+  getMacosModFileProviders: _withIosBaseMods().getMacosModFileProviders
 };
 //# sourceMappingURL=index.js.map
