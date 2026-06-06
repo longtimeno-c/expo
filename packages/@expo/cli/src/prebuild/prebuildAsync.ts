@@ -74,7 +74,9 @@ export async function prebuildAsync(
   const { platforms } = getConfig(projectRoot).exp;
   if (platforms?.length) {
     // Filter out platforms that aren't in the app.json.
-    const finalPlatforms = options.platforms.filter((platform) => platforms.includes(platform));
+    const finalPlatforms = options.platforms.filter((platform) =>
+      (platforms as string[]).includes(platform)
+    );
     if (finalPlatforms.length > 0) {
       options.platforms = finalPlatforms;
     } else {
@@ -176,10 +178,19 @@ export async function prebuildAsync(
   // Install CocoaPods
   let podsInstalled: boolean = false;
   // err towards running pod install less because it's slow and users can easily run npx pod-install afterwards.
-  if (options.platforms.includes('ios') && options.install && needsPodInstall) {
-    const { installCocoaPodsAsync } = await import('../utils/cocoapods.js');
-
-    podsInstalled = await installCocoaPodsAsync(projectRoot);
+  if (options.install && needsPodInstall) {
+    const applePlatforms = (['ios', 'macos'] as const).filter((platform) =>
+      options.platforms.includes(platform)
+    );
+    if (applePlatforms.length) {
+      const { installCocoaPodsAsync } = await import('../utils/cocoapods.js');
+      podsInstalled = true;
+      for (const platform of applePlatforms) {
+        podsInstalled = (await installCocoaPodsAsync(projectRoot, platform)) && podsInstalled;
+      }
+    } else {
+      debug('Skipped pod install');
+    }
   } else {
     debug('Skipped pod install');
   }

@@ -69,7 +69,11 @@ export async function hasPackageJsonDependencyListChangedAsync(
   return hasNewDependencies;
 }
 
-export async function installCocoaPodsAsync(projectRoot: string): Promise<boolean> {
+export async function installCocoaPodsAsync(
+  projectRoot: string,
+  // Apple platforms (`ios`/`macos`) keep their CocoaPods in their own native directory.
+  nativeDir: 'ios' | 'macos' = 'ios'
+): Promise<boolean> {
   let step = logNewSection('Installing CocoaPods...');
   if (process.platform !== 'darwin') {
     step.succeed('Skipped installing CocoaPods because operating system is not on macOS.');
@@ -77,7 +81,7 @@ export async function installCocoaPodsAsync(projectRoot: string): Promise<boolea
   }
 
   const packageManager = new PackageManager.CocoaPodsPackageManager({
-    cwd: path.join(projectRoot, 'ios'),
+    cwd: path.join(projectRoot, nativeDir),
     silent: !(env.EXPO_DEBUG || env.CI),
   });
 

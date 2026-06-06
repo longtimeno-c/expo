@@ -137,7 +137,7 @@ function updateBundleIdentifierForPbxproj(
  * @param {string} bundleIdentifier Bundle identifier to set in the pbxproj
  * @param {boolean} [updateProductName=true]  Whether to update PRODUCT_NAME
  */
-function updateBundleIdentifierForPbxprojObject(
+export function updateBundleIdentifierForPbxprojObject(
   project: XcodeProject,
   bundleIdentifier: string,
   updateProductName: boolean = true

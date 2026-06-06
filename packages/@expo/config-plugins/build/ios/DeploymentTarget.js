@@ -62,10 +62,27 @@ function getDeploymentTarget(config) {
   return config.ios?.deploymentTarget ?? null;
 }
 
-/** Set the iOS deployment target for an XCBuildConfiguration object */
+/**
+ * Set the deployment target for an XCBuildConfiguration object.
+ *
+ * tvOS targets use `TVOS_DEPLOYMENT_TARGET` rather than `IPHONEOS_DEPLOYMENT_TARGET`. A build
+ * configuration is treated as tvOS when it already declares a tvOS deployment target or builds
+ * against the Apple TV SDK, mirroring the detection used by `setDeviceFamily`. This keeps the
+ * `ios.deploymentTarget` config working for projects transformed into Apple TV targets (e.g. via
+ * `@react-native-tvos/config-tv`).
+ */
 function setDeploymentTargetForBuildConfiguration(xcBuildConfiguration, deploymentTarget) {
-  if (deploymentTarget) {
-    xcBuildConfiguration.buildSettings.IPHONEOS_DEPLOYMENT_TARGET = deploymentTarget;
+  if (!deploymentTarget) {
+    return;
+  }
+  const {
+    buildSettings
+  } = xcBuildConfiguration;
+  const isTVOS = typeof buildSettings.TVOS_DEPLOYMENT_TARGET !== 'undefined' || buildSettings.SDKROOT === 'appletvos';
+  if (isTVOS) {
+    buildSettings.TVOS_DEPLOYMENT_TARGET = deploymentTarget;
+  } else {
+    buildSettings.IPHONEOS_DEPLOYMENT_TARGET = deploymentTarget;
   }
 }
 

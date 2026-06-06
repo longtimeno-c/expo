@@ -66,6 +66,14 @@ function getPrebuildConfig(projectRoot, {
       bundleIdentifier: config.ios.bundleIdentifier
     });
   }
+  if (platforms.includes('macos')) {
+    if (!config.ios) config.ios = {};
+    // macOS reuses the iOS bundle identifier config key.
+    config.ios.bundleIdentifier = bundleIdentifier ?? config.ios.bundleIdentifier ?? `com.placeholder.appid`;
+    config = (0, _withDefaultPlugins().withMacosExpoPlugins)(config, {
+      bundleIdentifier: config.ios.bundleIdentifier
+    });
+  }
   if (platforms.includes('android')) {
     if (!config.android) config.android = {};
     config.android.package = packageName ?? config.android.package ?? `com.placeholder.appid`;

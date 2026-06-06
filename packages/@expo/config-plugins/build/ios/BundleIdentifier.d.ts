@@ -1,6 +1,7 @@
 import type { ExpoConfig } from '@expo/config-types';
+import xcode from 'xcode';
 import type { InfoPlist } from './IosConfig.types';
-import type { ConfigPlugin } from '../Plugin.types';
+import type { ConfigPlugin, XcodeProject } from '../Plugin.types';
 export declare const withBundleIdentifier: ConfigPlugin<{
     bundleIdentifier?: string;
 }>;
@@ -37,6 +38,14 @@ declare function getBundleIdentifierFromPbxproj(projectRoot: string, { targetNam
  * @param {boolean} [updateProductName=true]  Whether to update PRODUCT_NAME
  */
 declare function updateBundleIdentifierForPbxproj(pbxprojPath: string, bundleIdentifier: string, updateProductName?: boolean): void;
+/**
+ * Updates the bundle identifier for a given pbxproj
+ *
+ * @param {string} project pbxproj file
+ * @param {string} bundleIdentifier Bundle identifier to set in the pbxproj
+ * @param {boolean} [updateProductName=true]  Whether to update PRODUCT_NAME
+ */
+export declare function updateBundleIdentifierForPbxprojObject(project: XcodeProject, bundleIdentifier: string, updateProductName?: boolean): xcode.XcodeProject;
 /**
  * Updates the bundle identifier for pbx projects inside the ios directory of the given project root
  *

@@ -4,7 +4,7 @@ import path from 'path';
 import type { ForwardedBaseModOptions } from './createBaseMod';
 import { assertModResults } from './createBaseMod';
 import { withAndroidBaseMods } from './withAndroidBaseMods';
-import { withIosBaseMods } from './withIosBaseMods';
+import { withIosBaseMods, withMacosBaseMods } from './withIosBaseMods';
 import type { ExportedConfig, Mod, ModConfig, ModPlatform } from '../Plugin.types';
 import { getHackyProjectName } from '../ios/utils/Xcodeproj';
 import { PluginError } from '../utils/errors';
@@ -17,6 +17,7 @@ export function withDefaultBaseMods(
   props: ForwardedBaseModOptions = {}
 ): ExportedConfig {
   config = withIosBaseMods(config, props);
+  config = withMacosBaseMods(config, props);
   config = withAndroidBaseMods(config, props);
   return config;
 }
@@ -34,6 +35,11 @@ export function withIntrospectionBaseMods(
     saveToInternal: true,
     // This writing optimization can be skipped since we never write in introspection mode.
     // Including empty mods will ensure that all mods get introspected.
+    skipEmptyMod: false,
+    ...props,
+  });
+  config = withMacosBaseMods(config, {
+    saveToInternal: true,
     skipEmptyMod: false,
     ...props,
   });
@@ -108,15 +114,19 @@ function getRawClone({ mods, ...config }: ExportedConfig) {
   return Object.freeze(JSON.parse(JSON.stringify(config)));
 }
 
+const applePrecedence = {
+  // dangerous runs first
+  dangerous: -2,
+  // run the XcodeProject mod second because many plugins attempt to read from it.
+  xcodeproj: -1,
+  // put the finalized mod at the last
+  finalized: 1,
+};
+
 const precedences: Record<string, Record<string, number>> = {
-  ios: {
-    // dangerous runs first
-    dangerous: -2,
-    // run the XcodeProject mod second because many plugins attempt to read from it.
-    xcodeproj: -1,
-    // put the finalized mod at the last
-    finalized: 1,
-  },
+  ios: applePrecedence,
+  // macOS uses the same Apple project ordering as iOS.
+  macos: applePrecedence,
 };
 /**
  * A generic plugin compiler.
@@ -159,7 +169,9 @@ export async function evalModsAsync(
       debug(`run in order: ${entries.map(([name]) => name).join(', ')}`);
       const platformProjectRoot = path.join(projectRoot, platformName);
       const projectName =
-        platformName === 'ios' ? getHackyProjectName(projectRoot, config) : undefined;
+        platformName === 'ios' || platformName === 'macos'
+          ? getHackyProjectName(projectRoot, config, platformName)
+          : undefined;
 
       for (const [modName, mod] of entries) {
         const modRequest = {

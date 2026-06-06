@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import type { XCBuildConfiguration } from 'xcode';
 
+import type { AppleNativeDir } from './Paths';
 import { findFirstNativeTarget, getXCBuildConfigurationFromPbxproj } from './Target';
 import {
   getBuildConfigurationsForListId,
@@ -38,9 +39,10 @@ export function getEntitlementsPath(
   {
     targetName,
     buildConfiguration = 'Release',
-  }: { targetName?: string; buildConfiguration?: string } = {}
+    nativeDir = 'ios',
+  }: { targetName?: string; buildConfiguration?: string; nativeDir?: AppleNativeDir } = {}
 ): string | null {
-  const project = getPbxproj(projectRoot);
+  const project = getPbxproj(projectRoot, nativeDir);
   const xcBuildConfiguration = getXCBuildConfigurationFromPbxproj(project, {
     targetName,
     buildConfiguration,
@@ -50,28 +52,33 @@ export function getEntitlementsPath(
   }
   const entitlementsPath = getEntitlementsPathFromBuildConfiguration(
     projectRoot,
-    xcBuildConfiguration
+    xcBuildConfiguration,
+    nativeDir
   );
   return entitlementsPath && fs.existsSync(entitlementsPath) ? entitlementsPath : null;
 }
 
 function getEntitlementsPathFromBuildConfiguration(
   projectRoot: string,
-  xcBuildConfiguration: XCBuildConfiguration
+  xcBuildConfiguration: XCBuildConfiguration,
+  nativeDir: AppleNativeDir = 'ios'
 ): string | null {
   const entitlementsPathRaw = xcBuildConfiguration?.buildSettings?.CODE_SIGN_ENTITLEMENTS as
     | string
     | undefined;
   if (entitlementsPathRaw) {
-    return path.normalize(path.join(projectRoot, 'ios', trimQuotes(entitlementsPathRaw)));
+    return path.normalize(path.join(projectRoot, nativeDir, trimQuotes(entitlementsPathRaw)));
   } else {
     return null;
   }
 }
 
-export function ensureApplicationTargetEntitlementsFileConfigured(projectRoot: string): void {
-  const project = getPbxproj(projectRoot);
-  const projectName = getProjectName(projectRoot);
+export function ensureApplicationTargetEntitlementsFileConfigured(
+  projectRoot: string,
+  nativeDir: AppleNativeDir = 'ios'
+): void {
+  const project = getPbxproj(projectRoot, nativeDir);
+  const projectName = getProjectName(projectRoot, nativeDir);
   const productName = getProductName(project);
 
   const [, applicationTarget] = findFirstNativeTarget(project);
@@ -83,7 +90,8 @@ export function ensureApplicationTargetEntitlementsFileConfigured(projectRoot: s
   for (const [, xcBuildConfiguration] of buildConfigurations) {
     const oldEntitlementPath = getEntitlementsPathFromBuildConfiguration(
       projectRoot,
-      xcBuildConfiguration
+      xcBuildConfiguration,
+      nativeDir
     );
     if (oldEntitlementPath && fs.existsSync(oldEntitlementPath)) {
       return;
@@ -93,7 +101,7 @@ export function ensureApplicationTargetEntitlementsFileConfigured(projectRoot: s
     const entitlementsRelativePath = path
       .join(projectName, `${productName}.entitlements`)
       .replace(/\\/g, '/');
-    const entitlementsPath = path.resolve(projectRoot, 'ios', entitlementsRelativePath);
+    const entitlementsPath = path.resolve(projectRoot, nativeDir, entitlementsRelativePath);
     fs.mkdirSync(path.dirname(entitlementsPath), { recursive: true });
     if (!fs.existsSync(entitlementsPath)) {
       fs.writeFileSync(entitlementsPath, ENTITLEMENTS_TEMPLATE);

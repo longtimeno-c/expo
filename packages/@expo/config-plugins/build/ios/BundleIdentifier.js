@@ -10,6 +10,7 @@ exports.resetPlistBundleIdentifier = resetPlistBundleIdentifier;
 exports.setBundleIdentifier = setBundleIdentifier;
 exports.setBundleIdentifierForPbxproj = setBundleIdentifierForPbxproj;
 exports.updateBundleIdentifierForPbxproj = updateBundleIdentifierForPbxproj;
+exports.updateBundleIdentifierForPbxprojObject = updateBundleIdentifierForPbxprojObject;
 exports.withBundleIdentifier = void 0;
 function _plist() {
   const data = _interopRequireDefault(require("@expo/plist"));

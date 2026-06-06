@@ -115,6 +115,8 @@ export function resolvePlatformOption(
       return ['ios'];
     case 'android':
       return ['android'];
+    case 'macos':
+      return ['macos'];
     case 'all':
       return loose || process.platform !== 'win32' ? ['android', 'ios'] : ['android'];
     default:
@@ -122,14 +124,21 @@ export function resolvePlatformOption(
   }
 }
 
-/** Warns and filters out unsupported platforms based on the runtime constraints. Essentially this means no iOS on Windows devices. */
+/** Warns and filters out unsupported platforms based on the runtime constraints. Essentially this means no Apple platforms on Windows devices. */
 export function ensureValidPlatforms(platforms: ModPlatform[]): ModPlatform[] {
-  // Skip prebuild for iOS on Windows
-  if (process.platform === 'win32' && platforms.includes('ios')) {
-    Log.warn(
-      chalk`⚠️  Skipping generating the iOS native project files. Run {bold npx expo prebuild} again from macOS or Linux to generate the iOS project.\n`
+  // Skip prebuild for Apple platforms (iOS/macOS) on Windows — they require Xcode on macOS.
+  if (process.platform === 'win32') {
+    const applePlatforms = platforms.filter(
+      (platform) => platform === 'ios' || platform === 'macos'
     );
-    return platforms.filter((platform) => platform !== 'ios');
+    if (applePlatforms.length) {
+      Log.warn(
+        chalk`⚠️  Skipping generating the ${applePlatforms.join(
+          ', '
+        )} native project files. Run {bold npx expo prebuild} again from macOS or Linux to generate them.\n`
+      );
+      return platforms.filter((platform) => platform !== 'ios' && platform !== 'macos');
+    }
   }
   return platforms;
 }

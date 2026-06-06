@@ -35,7 +35,7 @@ describe(resolveXcodeProject, () => {
     vol.fromJSON({}, '/');
 
     expect(() => resolveXcodeProject('/')).toThrow(
-      'Xcode project not found in project: /. You can generate a project with `npx expo prebuild`'
+      'Xcode project not found in project: /. You can generate a project with `npx expo prebuild -p ios`'
     );
   });
 });

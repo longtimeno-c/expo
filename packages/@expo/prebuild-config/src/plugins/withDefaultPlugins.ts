@@ -2,7 +2,7 @@
  * These are the versioned first-party plugins with some of the future third-party plugins mixed in for legacy support.
  */
 import type { ConfigPlugin, StaticPlugin } from '@expo/config-plugins';
-import { AndroidConfig, IOSConfig, withPlugins, withStaticPlugin } from '@expo/config-plugins';
+import { AndroidConfig, IOSConfig, withMod, withPlugins, withStaticPlugin } from '@expo/config-plugins';
 import type { ExpoConfig } from '@expo/config-types';
 import Debug from 'debug';
 
@@ -22,6 +22,15 @@ import withMaps from './unversioned/react-native-maps';
 const debug = Debug('expo:prebuild-config');
 
 /**
+ * Whether the current prebuild targets Apple TV / Android TV. Mirrors the `EXPO_TV` signal used by
+ * [`@react-native-tvos/config-tv`](https://github.com/react-native-tvos/config-tv) so the default
+ * Expo plugins stay in sync with the TV transform and skip iPhone/iPad-only settings.
+ */
+export function isTVEnabled(): boolean {
+  return process.env.EXPO_TV === '1' || process.env.EXPO_TV === 'true';
+}
+
+/**
  * Config plugin to apply all of the custom Expo iOS config plugins we support by default.
  * TODO: In the future most of this should go into versioned packages like expo-updates, etc...
  */
@@ -32,13 +41,19 @@ export const withIosExpoPlugins: ConfigPlugin<{
   if (!config.ios) config.ios = {};
   config.ios.bundleIdentifier = bundleIdentifier;
 
+  // tvOS targets don't use these iPhone/iPad-only settings: orientation and "requires full screen"
+  // are irrelevant on Apple TV, and tvOS ships its own Brand Assets catalog rather than the iOS app
+  // icon set. Skip them when building for TV so prebuild doesn't write meaningless or wrong values.
+  const isTV = isTVEnabled();
+
   return withPlugins(config, [
     [IOSConfig.BundleIdentifier.withBundleIdentifier, { bundleIdentifier }],
     IOSConfig.Google.withGoogle,
     IOSConfig.Name.withDisplayName,
     IOSConfig.Name.withProductName,
-    IOSConfig.Orientation.withOrientation,
-    IOSConfig.RequiresFullScreen.withRequiresFullScreen,
+    ...(isTV
+      ? []
+      : [IOSConfig.Orientation.withOrientation, IOSConfig.RequiresFullScreen.withRequiresFullScreen]),
     IOSConfig.Scheme.withScheme,
     IOSConfig.UsesNonExemptEncryption.withUsesNonExemptEncryption,
     IOSConfig.Version.withBuildNumber,
@@ -55,9 +70,57 @@ export const withIosExpoPlugins: ConfigPlugin<{
     IOSConfig.Locales.withLocales,
     IOSConfig.DevelopmentTeam.withDevelopmentTeam,
     // Dangerous
-    withIosIcons,
+    ...(isTV ? [] : [withIosIcons]),
     IOSConfig.PrivacyInfo.withPrivacyInfo,
   ]);
+};
+
+/**
+ * Config plugin to apply the Expo macOS config plugins during prebuild.
+ *
+ * macOS reuses the iOS app config keys (`ios.*`) and the same Apple project formats, so this applies
+ * the platform-safe subset of the iOS plugins to the `macos/` project: app name, version, build
+ * number, and bundle identifier. iPhone/iPad-only concerns (orientation, device family, icon sizing)
+ * are intentionally omitted — macOS doesn't use them.
+ */
+export const withMacosExpoPlugins: ConfigPlugin<{
+  bundleIdentifier: string;
+}> = (config, { bundleIdentifier }) => {
+  if (!config.ios) config.ios = {};
+  config.ios.bundleIdentifier = bundleIdentifier;
+
+  // Apply Info.plist values (name, version, bundle identifier) to the macOS Info.plist.
+  config = withMod(config, {
+    platform: 'macos',
+    mod: 'infoPlist',
+    action(config) {
+      let infoPlist = config.modResults as any;
+      infoPlist = IOSConfig.Name.setDisplayName(config, infoPlist);
+      infoPlist = IOSConfig.Version.setVersion(config, infoPlist);
+      infoPlist = IOSConfig.Version.setBuildNumber(config, infoPlist);
+      infoPlist.CFBundleIdentifier = bundleIdentifier;
+      config.modResults = infoPlist;
+      if (!config.ios) config.ios = {};
+      config.ios.infoPlist = infoPlist;
+      return config;
+    },
+  });
+
+  // Apply the bundle identifier to the macOS Xcode project.
+  config = withMod(config, {
+    platform: 'macos',
+    mod: 'xcodeproj',
+    action(config) {
+      IOSConfig.BundleIdentifier.updateBundleIdentifierForPbxprojObject(
+        config.modResults as any,
+        bundleIdentifier,
+        false
+      );
+      return config;
+    },
+  });
+
+  return config;
 };
 
 /**

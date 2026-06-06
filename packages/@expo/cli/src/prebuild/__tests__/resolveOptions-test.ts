@@ -43,6 +43,7 @@ describe(resolvePlatformOption, () => {
   it('returns the correct platforms', () => {
     expect(resolvePlatformOption('ios')).toEqual(['ios']);
     expect(resolvePlatformOption('android')).toEqual(['android']);
+    expect(resolvePlatformOption('macos')).toEqual(['macos']);
   });
   it('returns the correct platforms (darwin)', () => {
     Object.defineProperty(process, 'platform', {
@@ -203,10 +204,22 @@ describe(ensureValidPlatforms, () => {
     });
     expect(ensureValidPlatforms(['ios', 'android'])).toStrictEqual(['android']);
   });
+  it(`bails on windows for Apple platforms (ios and macos)`, async () => {
+    Object.defineProperty(process, 'platform', {
+      value: 'win32',
+    });
+    expect(ensureValidPlatforms(['ios', 'macos', 'android'])).toStrictEqual(['android']);
+  });
   it(`allows ios on all platforms except windows`, async () => {
     Object.defineProperty(process, 'platform', {
       value: 'other',
     });
     expect(ensureValidPlatforms(['ios', 'android'])).toStrictEqual(['ios', 'android']);
+  });
+  it(`allows macos on all platforms except windows`, async () => {
+    Object.defineProperty(process, 'platform', {
+      value: 'other',
+    });
+    expect(ensureValidPlatforms(['macos', 'android'])).toStrictEqual(['macos', 'android']);
   });
 });

@@ -6,16 +6,17 @@
  */
 import type { ExpoConfig } from '@expo/config-types';
 import type { PBXFile, PBXGroup, PBXNativeTarget, PBXProject, UUID, XCBuildConfiguration, XCConfigurationList, XcodeProject } from 'xcode';
+import * as Paths from '../Paths';
 export type ProjectSectionEntry = [string, PBXProject];
 export type NativeTargetSection = Record<string, PBXNativeTarget>;
 export type NativeTargetSectionEntry = [string, PBXNativeTarget];
 export type ConfigurationLists = Record<string, XCConfigurationList>;
 export type ConfigurationListEntry = [string, XCConfigurationList];
 export type ConfigurationSectionEntry = [string, XCBuildConfiguration];
-export declare function getProjectName(projectRoot: string): string;
+export declare function getProjectName(projectRoot: string, nativeDir?: Paths.AppleNativeDir): string;
 export declare function resolvePathOrProject(projectRootOrProject: string | XcodeProject): XcodeProject | null;
 export declare function sanitizedName(name: string): string;
-export declare function getHackyProjectName(projectRoot: string, config: ExpoConfig): string;
+export declare function getHackyProjectName(projectRoot: string, config: ExpoConfig, nativeDir?: Paths.AppleNativeDir): string;
 /**
  * Add a resource file (ex: `SplashScreen.storyboard`, `Images.xcassets`) to an Xcode project.
  * This is akin to creating a new code file in Xcode with `⌘+n`.
@@ -72,7 +73,7 @@ export declare function ensureGroupRecursively(project: XcodeProject, filepath: 
 /**
  * Get the pbxproj for the given path
  */
-export declare function getPbxproj(projectRoot: string): XcodeProject;
+export declare function getPbxproj(projectRoot: string, nativeDir?: Paths.AppleNativeDir): XcodeProject;
 /**
  * Get the productName for a project, if the name is using a variable `$(TARGET_NAME)`, then attempt to get the value of that variable.
  *

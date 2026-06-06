@@ -6,7 +6,11 @@
 
 ### 🎉 New features
 
+- Add macOS support to the mod system: `ModConfig.macos`, `withMacosBaseMods`, and `getMacosModFileProviders`, reusing the Apple mod providers against the `macos/` directory. Also export `IOSConfig.BundleIdentifier.updateBundleIdentifierForPbxprojObject`. ([#0](https://github.com/expo/expo/pull/0) by [@tphwoodlands](https://github.com/tphwoodlands))
+
 ### 🐛 Bug fixes
+
+- Set `TVOS_DEPLOYMENT_TARGET` instead of `IPHONEOS_DEPLOYMENT_TARGET` for Apple TV build configurations so `ios.deploymentTarget` works for tvOS targets. ([#0](https://github.com/expo/expo/pull/0) by [@tphwoodlands](https://github.com/tphwoodlands))
 
 ### 💡 Others
 
