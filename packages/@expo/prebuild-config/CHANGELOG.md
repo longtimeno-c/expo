@@ -6,6 +6,8 @@
 
 ### 🎉 New features
 
+- Skip iPhone/iPad-only iOS plugins (orientation, requires-full-screen, and app icon generation) during prebuild when targeting Apple TV (`EXPO_TV`). ([#0](https://github.com/expo/expo/pull/0) by [@tphwoodlands](https://github.com/tphwoodlands))
+
 ### 🐛 Bug fixes
 
 ### 💡 Others

@@ -212,6 +212,7 @@ describe('built-in plugins', () => {
   afterEach(() => {
     vol.reset();
     console.warn = originalWarn;
+    delete process.env.EXPO_TV;
   });
 
   // Ensure helpful error messages are thrown
@@ -636,6 +637,34 @@ describe('built-in plugins', () => {
       'config/google-services.json',
       'locales/en-US.json',
     ]);
+  });
+
+  // The iOS icon generator writes this PNG into the asset catalog (the catalog's `Contents.json`
+  // ships in the bare template, so the generated image is the reliable signal it ran).
+  const generatedAppIconPath =
+    'ios/HelloWorld/Images.xcassets/AppIcon.appiconset/App-Icon-1024x1024@1x.png';
+
+  it('applies iPhone/iPad-only iOS plugins when EXPO_TV is not set', async () => {
+    let config = getPrebuildConfig();
+    config = await compileModsAsync(config, { projectRoot: '/app' });
+    const after = getDirFromFS(vol.toJSON(), projectRoot);
+
+    // The iOS app icon image is generated.
+    expect(after[generatedAppIconPath]).toBeDefined();
+    // RequiresFullScreen (iPhone/iPad-only) is applied.
+    expect(config.ios?.infoPlist?.UIRequiresFullScreen).toBe(true);
+  });
+
+  it('skips iPhone/iPad-only iOS plugins for tvOS (EXPO_TV)', async () => {
+    process.env.EXPO_TV = '1';
+    let config = getPrebuildConfig();
+    config = await compileModsAsync(config, { projectRoot: '/app' });
+    const after = getDirFromFS(vol.toJSON(), projectRoot);
+
+    // tvOS uses a separate Brand Assets catalog, so the iOS icon generator is skipped.
+    expect(after[generatedAppIconPath]).toBeUndefined();
+    // Orientation and RequiresFullScreen are iPhone/iPad-only and skipped for tvOS.
+    expect(config.ios?.infoPlist?.UIRequiresFullScreen).toBeUndefined();
   });
 });
 
